@@ -7,7 +7,6 @@ import re
 import sys
 from HTMLParser import HTMLParser
 
-
 # HTML tag stripper
 class MLStripper(HTMLParser):
   def __init__(self):
