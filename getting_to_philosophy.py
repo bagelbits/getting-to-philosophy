@@ -79,7 +79,6 @@ def remove_wiki_file(page_contents):
 # Leverages Wikipedia api to grab contents of current page revision
 # Returns first matched linnk
 def grab_first_wiki_link(page_name):
-  print page_to_search
   # Wiki api call for getting the latest revision of a page
   wiki_page_json = json.load(urllib2.urlopen("http://en.wikipedia.org/w/api.php?format=json&action=query&continue=&titles={0}&prop=revisions&rvprop=content&section=0".format(page_name.encode('utf-8'))))
 
@@ -100,7 +99,7 @@ def grab_first_wiki_link(page_name):
   # Contents needs some formatting at front
 
   # Remove comments
-  page_contents = re.sub(r'<!-- .*? -->', '', page_contents)
+  page_contents = re.sub(r'<!--.*?-->', '', page_contents)
 
   # Remove div tags and their contents
   page_contents = re.sub(re.compile(r'<div.*?>.*?\n', re.S), '', page_contents)
@@ -120,8 +119,8 @@ def grab_first_wiki_link(page_name):
   # Ignore things between parens except links
   page_contents = re.sub(r'\([^)]*\)(?!\|)', '', page_contents)
 
-  # Ignore italizied 
-  page_contents = re.sub(r'\'\'.+?\'\'', '', page_contents)
+  # Ignore italizied but not bold
+  page_contents = re.sub(r'(?<!\')\'{2}[^\']+?\'{2}(?!\')', '', page_contents)
 
   # Remove references
   page_contents = re.sub(r'<ref.*?</ref>', '', page_contents)
