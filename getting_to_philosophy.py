@@ -173,6 +173,13 @@ while page_to_search.lower() != "philosophy":
     print "Page links to self"
     print "{} hops".format(hop_count)
     break
+
+  # Drop wiktionary entries
+  if page_to_search.startswith("wiktionary:"):
+    print "Wiktionary entry found"
+    print "{} hops".format(hop_count)
+    break
+
   page_to_search = page_to_search.split('#', 1)[0]
   # except Exception as e:
   #   print e
