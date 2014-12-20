@@ -27,6 +27,7 @@ def strip_tags(html):
 def wiki_redirect(page_contents):
   redirect_link = re.search(r"\[\[(.+?)\]\]", page_contents)
   redirect_link = redirect_link.group(1).split("|")[0]
+  redirect_link = redirect_link.split('#', 1)[0]
   redirect_link = re.sub(r'\s', '_', redirect_link.strip())
   wiki_page_json = json.load(urllib2.urlopen("http://en.wikipedia.org/w/api.php?format=json&action=query&continue=&titles={0}&prop=revisions&rvprop=content&section=0".format(redirect_link.encode('utf-8'))))
 
