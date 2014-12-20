@@ -133,66 +133,70 @@ def grab_first_wiki_link(page_name):
   return link_match
 
 
-
-# Require correct number of args
-if len(sys.argv) < 2:
-  print "Please provide link to wikipedia page"
-  sys.exit()
-if len(sys.argv) > 2:
-  print "Too many arguements given"
-  sys.exit()
-
-# Try and get page name
-try:
-  page_to_search = sys.argv[1].rsplit("/", 1)[1]
-except:
-  print "Improper url given"
-  sys.exit()
-
-hop_count = 0
-MAX_HOPS = 100
-
-# Main loop
-print "http://en.wikipedia.org/wiki/{0}".format(page_to_search.encode('utf-8'))
-while page_to_search.lower() != "philosophy":
-
-  #Catch any errors and exit gracefully
+def get_to_philosophy(page_name):
+  # Try and get page name
   try:
-    page_to_search = grab_first_wiki_link(page_to_search)
-  except Exception as e:
-    print e
+    page_to_search = page_name.rsplit("/", 1)[1]
+  except:
+    print "Improper url given"
     sys.exit()
-  # Drop hash tags
-  if page_to_search.startswith("#"):
-    print "Page links to self"
-    print "{} hops".format(hop_count)
-    break
 
-  # Drop wiktionary entries
-  if page_to_search.startswith("wiktionary:"):
-    print "Wiktionary entry found"
-    print "{} hops".format(hop_count)
-    break
+  hop_count = 0
+  MAX_HOPS = 100
 
-  page_to_search = page_to_search.split('#', 1)[0]
-
-  # Edge case where no link found on page
-  if not page_to_search:
-    print "No link found"
-    print "{} hops".format(hop_count)
-    break
-  
-  # Format for new link
-  page_to_search = re.sub(r'\s', '_', page_to_search.strip())
-
-  # Print next check and increment
+  # Main loop
   print "http://en.wikipedia.org/wiki/{0}".format(page_to_search.encode('utf-8'))
-  hop_count +=1
-  # break
+  while page_to_search.lower() != "philosophy":
 
-  # Break out on max hops
-  if hop_count == MAX_HOPS:
-    print "Max hop of {} reached".format(MAX_HOPS)
-    break
-else:
-  print "{} hops".format(hop_count)
+    #Catch any errors and exit gracefully
+    try:
+      page_to_search = grab_first_wiki_link(page_to_search)
+    except Exception as e:
+      print e
+      sys.exit()
+    # Drop hash tags
+    if page_to_search.startswith("#"):
+      print "Page links to self"
+      return hop_count
+
+    # Drop wiktionary entries
+    if page_to_search.startswith("wiktionary:"):
+      print "Wiktionary entry found"
+      return hop_count
+
+    page_to_search = page_to_search.split('#', 1)[0]
+
+    # Edge case where no link found on page
+    if not page_to_search:
+      print "No link found"
+      return hop_count
+    
+    # Format for new link
+    page_to_search = re.sub(r'\s', '_', page_to_search.strip())
+
+    # Print next check and increment
+    print "http://en.wikipedia.org/wiki/{0}".format(page_to_search.encode('utf-8'))
+    hop_count +=1
+    # break
+
+    # Break out on max hops
+    if hop_count == MAX_HOPS:
+      print "Max hop of {} reached".format(MAX_HOPS)
+      return -1
+  else:
+    return hop_count
+    
+
+if __name__ == "__main__":
+  # Require correct number of args
+  if len(sys.argv) < 2:
+    print "Please provide link to wikipedia page"
+    sys.exit()
+  if len(sys.argv) > 2:
+    print "Too many arguements given"
+    sys.exit()
+
+  hop_count = get_to_philosophy(sys.argv[1])
+  if hop_count >= 0:
+    print "{} hops".format(hop_count)
+
