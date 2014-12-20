@@ -44,23 +44,14 @@ def wiki_redirect(page_contents):
   return page_contents
 
 def remove_wiki_meta_data(page_contents):
-  balance = False
   open_brace = 0
   close_brace = 0
-  while not balance:
-    current_line = re.search(r'.*', page_contents).group(0)
+  for current_line in page_contents:
     open_brace += current_line.count("{")
     close_brace += current_line.count("}")
     if open_brace == close_brace:
-      balance = True
-      if not current_line.endswith("}"):
-        page_contents = re.sub(r'.*?}+', '', page_contents)
-      else:
-        page_contents = page_contents.split("\n", 1)[1]
-    else:
-      page_contents = page_contents.split("\n", 1)[1]
-
-  return page_contents.strip()
+      break
+  return page_contents.split("}", close_brace)[-1].strip()
 
 def remove_wiki_file(page_contents):
   balance = False
@@ -105,9 +96,9 @@ def grab_first_wiki_link(page_name):
   # Remove div tags and their contents
   page_contents = re.sub(re.compile(r'<div.*?>.*?\n', re.S), '', page_contents)
 
+    # Remove nutshell sections
+  page_contents = re.sub(re.compile(r'<section begin=nutshell />.*?<section end=nutshell />', re.S), '', page_contents)
 
-  # Remove references
-  page_contents = re.sub(r'<ref.*?</ref>', '', page_contents)
   page_contents = page_contents.strip()
 
   # Remove meta and listbox
@@ -118,8 +109,8 @@ def grab_first_wiki_link(page_name):
     else:
       page_contents = remove_wiki_file(page_contents)
 
-  # Remove nutshell sections
-  page_contents = re.sub(re.compile(r'<section begin=nutshell />.*?<section end=nutshell />', re.S), '', page_contents)
+  # Remove references
+  page_contents = re.sub(r'(?<!{.*?)<ref.*?</ref>', '', page_contents)
 
   # Ignore things between parens except links
   page_contents = re.sub(r'\([^)]*\)(?!\|)', '', page_contents)
