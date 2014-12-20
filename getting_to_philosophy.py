@@ -93,7 +93,7 @@ def grab_first_wiki_link(page_name):
   page_contents = wiki_page_json['query']['pages'][current_rev]['revisions'][0]['*']
 
   # Handle wiki redirect
-  if page_contents.startswith("#REDIRECT"):
+  if page_contents.startswith("#"):
     page_contents = wiki_redirect(page_contents)
 
   # Contents needs some formatting at front
