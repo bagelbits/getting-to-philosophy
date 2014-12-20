@@ -48,12 +48,12 @@ def remove_wiki_meta_data(page_contents):
   close_brace = 0
   while not balance:
     current_line = re.search(r'.*', page_contents).group(0)
-    open_brace += current_line.count("{{")
-    close_brace += current_line.count("}}")
+    open_brace += current_line.count("{")
+    close_brace += current_line.count("}")
     if open_brace == close_brace:
       balance = True
-      if not current_line.endswith("}}"):
-        page_contents = page_contents.split("}}", 1)[1]
+      if not current_line.endswith("}"):
+        page_contents = re.sub(r'.*?}+', '', page_contents)
       else:
         page_contents = page_contents.split("\n", 1)[1]
     else:
@@ -102,12 +102,14 @@ def grab_first_wiki_link(page_name):
   # Remove comments
   page_contents = re.sub(r'<!-- .*? -->', '', page_contents)
 
+  # Remove div tags and their contents
+  page_contents = re.sub(re.compile(r'<div.*?>.*?\n', re.S), '', page_contents)
   page_contents = page_contents.strip()
 
   # Remove meta and listbox
   # Remove images that confuses links
-  while page_contents.startswith("{{") or page_contents.startswith("[[File:") or page_contents.startswith("[[Image:"):
-    if page_contents.startswith("{{"):
+  while page_contents.startswith("{") or page_contents.startswith("[[File:") or page_contents.startswith("[[Image:"):
+    if page_contents.startswith("{"):
       page_contents = remove_wiki_meta_data(page_contents)
     else:
       page_contents = remove_wiki_file(page_contents)
@@ -115,14 +117,17 @@ def grab_first_wiki_link(page_name):
   # Remove nutshell sections
   page_contents = re.sub(re.compile(r'<section begin=nutshell />.*?<section end=nutshell />', re.S), '', page_contents)
 
-  # Remove html tags
-  page_contents = strip_tags(page_contents)
-
   # Ignore things between parens except links
   page_contents = re.sub(r'\([^)]*\)(?!\|)', '', page_contents)
 
   # Ignore italizied 
-  page_contents = re.sub(r'\'\'\[\[.+?\]\]\'\'', '', page_contents)
+  page_contents = re.sub(r'\'\'.+?\'\'', '', page_contents)
+
+  # Remove references
+  page_contents = re.sub(r'<ref.*?</ref>', '', page_contents)
+
+  # Remove html tags
+  page_contents = strip_tags(page_contents)
 
   # Links are enclosed with [[  ]] so grab the first one
   link_match = re.search(r"\[\[(.+?)\]\]", page_contents)
