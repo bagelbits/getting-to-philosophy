@@ -110,7 +110,7 @@ def grab_first_wiki_link(page_name):
       page_contents = remove_wiki_file(page_contents)
 
   # Remove references
-  page_contents = re.sub(r'(?<!{.*?)<ref.*?</ref>', '', page_contents)
+  page_contents = re.sub(r'<ref.*?</ref>', '', page_contents)
 
   # Ignore things between parens except links
   page_contents = re.sub(r'\([^)]*\)(?!\|)', '', page_contents)
