@@ -25,6 +25,21 @@ def wiki_redirect(page_contents):
 
   return page_contents
 
+def remove_wiki_meta_data(page_contents):
+  balance = False
+  open_brace = 0
+  close_brace = 0
+  while not balance:
+    current_line = re.search(r'.*', page_contents).group(0)
+    open_brace += current_line.count("{{")
+    close_brace += current_line.count("}}")
+    if open_brace == close_brace:
+      balance = True
+    page_contents = page_contents.split("\n", 1)[1]
+
+  return page_contents.strip()
+
+
 # Leverages Wikipedia api to grab contents of current page revision
 # Returns first matched linnk
 def grab_first_wiki_link(page_name):
@@ -47,14 +62,22 @@ def grab_first_wiki_link(page_name):
     page_contents = wiki_redirect(page_contents)
 
   # Contents needs some formatting at front
-  page_contents = re.sub(r'\n', ' ', page_contents)
-  page_contents = page_contents.split('\'\'\'', 1)[1]
+  # Remove images that confuses links
+  page_contents = re.sub(r'\[\[File:.*\]\]', '', page_contents)
 
+  # Reomve references
+  page_contents = re.sub(r'<ref.*?</ref>', '', page_contents)
+  
+  # Remove meta and listbox
+  while page_contents.startswith("{{"):
+    page_contents = remove_wiki_meta_data(page_contents)
 
-  # print page_contents
+  # Ignore things between parens except links
+  page_contents = re.sub(r'\([^)]*\)(?!\|)', '', page_contents, count=1)
+  
 
   # Links are enclosed with [[  ]] so grab the first one
-  link_match = re.search(r"\[\[([\w\s\(\)\|]+)\]\]", page_contents)
+  link_match = re.search(r"\[\[([#\w\s\(\)\|\-]+)\]\]", page_contents)
   
   # Edge case where no link found
   if not link_match:
@@ -91,6 +114,8 @@ while page_to_search.lower() != "philosophy":
   #Catch any errors and exit gracefully
   # try:
   page_to_search = grab_first_wiki_link(page_to_search)
+  # Drop hash tags
+  page_to_search = page_to_search.split('#', 1)[0]
   # except Exception as e:
   #   print e
   #   sys.exit()
@@ -101,7 +126,7 @@ while page_to_search.lower() != "philosophy":
     break
   
   # Format for new link
-  page_to_search = re.sub(r'\s', '_', page_to_search.strip()).capitalize()
+  page_to_search = re.sub(r'\s', '_', page_to_search.strip())
 
   # Print next check and increment
   print "http://en.wikipedia.org/wiki/{0}".format(page_to_search)
