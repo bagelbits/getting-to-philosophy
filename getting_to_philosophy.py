@@ -103,6 +103,10 @@ def grab_first_wiki_link(page_name):
 
   # Remove div tags and their contents
   page_contents = re.sub(re.compile(r'<div.*?>.*?\n', re.S), '', page_contents)
+
+
+  # Remove references
+  page_contents = re.sub(r'<ref.*?</ref>', '', page_contents)
   page_contents = page_contents.strip()
 
   # Remove meta and listbox
@@ -121,9 +125,6 @@ def grab_first_wiki_link(page_name):
 
   # Ignore italizied but not bold
   page_contents = re.sub(r'(?<!\')\'{2}[^\']+?\'{2}(?!\')', '', page_contents)
-
-  # Remove references
-  page_contents = re.sub(r'<ref.*?</ref>', '', page_contents)
 
   # Remove html tags
   page_contents = strip_tags(page_contents)
