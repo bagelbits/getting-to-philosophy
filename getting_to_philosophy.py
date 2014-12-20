@@ -157,8 +157,11 @@ print "http://en.wikipedia.org/wiki/{0}".format(page_to_search.encode('utf-8'))
 while page_to_search.lower() != "philosophy":
 
   #Catch any errors and exit gracefully
-  # try:
-  page_to_search = grab_first_wiki_link(page_to_search)
+  try:
+    page_to_search = grab_first_wiki_link(page_to_search)
+  except Exception as e:
+    print e
+    sys.exit()
   # Drop hash tags
   if page_to_search.startswith("#"):
     print "Page links to self"
@@ -172,9 +175,6 @@ while page_to_search.lower() != "philosophy":
     break
 
   page_to_search = page_to_search.split('#', 1)[0]
-  # except Exception as e:
-  #   print e
-  #   sys.exit()
 
   # Edge case where no link found on page
   if not page_to_search:
