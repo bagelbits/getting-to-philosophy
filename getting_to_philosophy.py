@@ -5,13 +5,30 @@ import json
 import urllib2
 import re
 import sys
+from HTMLParser import HTMLParser
+
+
+# HTML tag stripper
+class MLStripper(HTMLParser):
+  def __init__(self):
+    self.reset()
+    self.fed = []
+  def handle_data(self, d):
+    self.fed.append(d)
+  def get_data(self):
+    return ''.join(self.fed)
+
+def strip_tags(html):
+  s = MLStripper()
+  s.feed(html)
+  return s.get_data()
 
 # Improperly formated names will occasionally redirect
 def wiki_redirect(page_contents):
-  redirect_link = re.search(r"\[\[([\w\s\(\)\|]+)\]\]", page_contents)
+  redirect_link = re.search(r"\[\[(.+?)\]\]", page_contents)
   redirect_link = redirect_link.group(1).split("|")[0]
   redirect_link = re.sub(r'\s', '_', redirect_link.strip())
-  wiki_page_json = json.load(urllib2.urlopen("http://en.wikipedia.org/w/api.php?format=json&action=query&continue=&titles={0}&prop=revisions&rvprop=content&section=0".format(redirect_link)))
+  wiki_page_json = json.load(urllib2.urlopen("http://en.wikipedia.org/w/api.php?format=json&action=query&continue=&titles={0}&prop=revisions&rvprop=content&section=0".format(redirect_link.encode('utf-8'))))
 
   # If no page found there is no query
   if 'query' not in wiki_page_json:
@@ -35,6 +52,25 @@ def remove_wiki_meta_data(page_contents):
     close_brace += current_line.count("}}")
     if open_brace == close_brace:
       balance = True
+      if not current_line.endswith("}}"):
+        page_contents = page_contents.split("}}", 1)[1]
+      else:
+        page_contents = page_contents.split("\n", 1)[1]
+    else:
+      page_contents = page_contents.split("\n", 1)[1]
+
+  return page_contents.strip()
+
+def remove_wiki_file(page_contents):
+  balance = False
+  open_brace = 0
+  close_brace = 0
+  while not balance:
+    current_line = re.search(r'.*', page_contents).group(0)
+    open_brace += current_line.count("[[")
+    close_brace += current_line.count("]]")
+    if open_brace == close_brace:
+      balance = True
     page_contents = page_contents.split("\n", 1)[1]
 
   return page_contents.strip()
@@ -45,7 +81,7 @@ def remove_wiki_meta_data(page_contents):
 def grab_first_wiki_link(page_name):
   print page_to_search
   # Wiki api call for getting the latest revision of a page
-  wiki_page_json = json.load(urllib2.urlopen("http://en.wikipedia.org/w/api.php?format=json&action=query&continue=&titles={0}&prop=revisions&rvprop=content&section=0".format(page_name)))
+  wiki_page_json = json.load(urllib2.urlopen("http://en.wikipedia.org/w/api.php?format=json&action=query&continue=&titles={0}&prop=revisions&rvprop=content&section=0".format(page_name.encode('utf-8'))))
 
   # If no page found there is no query
   if 'query' not in wiki_page_json:
@@ -62,22 +98,34 @@ def grab_first_wiki_link(page_name):
     page_contents = wiki_redirect(page_contents)
 
   # Contents needs some formatting at front
-  # Remove images that confuses links
-  page_contents = re.sub(r'\[\[File:.*\]\]', '', page_contents)
 
-  # Reomve references
-  page_contents = re.sub(r'<ref.*?</ref>', '', page_contents)
-  
+  # Remove comments
+  page_contents = re.sub(r'<!-- .*? -->', '', page_contents)
+
+  page_contents = page_contents.strip()
+
   # Remove meta and listbox
-  while page_contents.startswith("{{"):
-    page_contents = remove_wiki_meta_data(page_contents)
+  # Remove images that confuses links
+  while page_contents.startswith("{{") or page_contents.startswith("[[File:") or page_contents.startswith("[[Image:"):
+    if page_contents.startswith("{{"):
+      page_contents = remove_wiki_meta_data(page_contents)
+    else:
+      page_contents = remove_wiki_file(page_contents)
+
+  # Remove nutshell sections
+  page_contents = re.sub(re.compile(r'<section begin=nutshell />.*?<section end=nutshell />', re.S), '', page_contents)
+
+  # Remove html tags
+  page_contents = strip_tags(page_contents)
 
   # Ignore things between parens except links
-  page_contents = re.sub(r'\([^)]*\)(?!\|)', '', page_contents, count=1)
-  
+  page_contents = re.sub(r'\([^)]*\)(?!\|)', '', page_contents)
+
+  # Ignore italizied 
+  page_contents = re.sub(r'\'\'\[\[.+?\]\]\'\'', '', page_contents)
 
   # Links are enclosed with [[  ]] so grab the first one
-  link_match = re.search(r"\[\[([#\w\s\(\)\|\-]+)\]\]", page_contents)
+  link_match = re.search(r"\[\[(.+?)\]\]", page_contents)
   
   # Edge case where no link found
   if not link_match:
@@ -108,13 +156,17 @@ hop_count = 0
 MAX_HOPS = 100
 
 # Main loop
-print "http://en.wikipedia.org/wiki/{0}".format(page_to_search)
+print "http://en.wikipedia.org/wiki/{0}".format(page_to_search.encode('utf-8'))
 while page_to_search.lower() != "philosophy":
 
   #Catch any errors and exit gracefully
   # try:
   page_to_search = grab_first_wiki_link(page_to_search)
   # Drop hash tags
+  if page_to_search.startswith("#"):
+    print "Page links to self"
+    print "{} hops".format(hop_count)
+    break
   page_to_search = page_to_search.split('#', 1)[0]
   # except Exception as e:
   #   print e
@@ -123,13 +175,14 @@ while page_to_search.lower() != "philosophy":
   # Edge case where no link found on page
   if not page_to_search:
     print "No link found"
+    print "{} hops".format(hop_count)
     break
   
   # Format for new link
   page_to_search = re.sub(r'\s', '_', page_to_search.strip())
 
   # Print next check and increment
-  print "http://en.wikipedia.org/wiki/{0}".format(page_to_search)
+  print "http://en.wikipedia.org/wiki/{0}".format(page_to_search.encode('utf-8'))
   hop_count +=1
   # break
 
