@@ -133,13 +133,7 @@ def grab_first_wiki_link(page_name):
   return link_match
 
 
-def get_to_philosophy(page_name):
-  # Try and get page name
-  try:
-    page_to_search = page_name.rsplit("/", 1)[1]
-  except:
-    print "Improper url given"
-    sys.exit()
+def get_to_philosophy(page_to_search):
 
   hop_count = 0
   MAX_HOPS = 100
@@ -149,11 +143,11 @@ def get_to_philosophy(page_name):
   while page_to_search.lower() != "philosophy":
 
     #Catch any errors and exit gracefully
-    try:
-      page_to_search = grab_first_wiki_link(page_to_search)
-    except Exception as e:
-      print e
-      sys.exit()
+    # try:
+    page_to_search = grab_first_wiki_link(page_to_search)
+    # except Exception as e:
+    #   print e
+    #   sys.exit()
     # Drop hash tags
     if page_to_search.startswith("#"):
       print "Page links to self"
@@ -196,7 +190,14 @@ if __name__ == "__main__":
     print "Too many arguements given"
     sys.exit()
 
-  hop_count = get_to_philosophy(sys.argv[1])
+  # Try and get page name
+  try:
+    page_to_search = sys.argv[1].rsplit("/", 1)[1]
+  except:
+    print "Improper url given"
+    sys.exit()
+
+  hop_count = get_to_philosophy(page_to_search)
   if hop_count >= 0:
     print "{} hops".format(hop_count)
 
